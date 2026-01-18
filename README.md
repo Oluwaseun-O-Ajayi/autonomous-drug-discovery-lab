@@ -341,9 +341,9 @@ Chemistry PhD Researcher specializing in:
 
 **Connect:**
 - GitHub: [@Oluwaseun-O-Ajayi](https://github.com/Oluwaseun-O-Ajayi)
-- Email: [Your professional email]
-- ORCID: [Your ORCID iD]
-- LinkedIn: [Your LinkedIn]
+- Email: seunolanikeajayi@gmail.com | oluwaseun.ajayi@uga.edu
+- ORCID: [0000-0003-0040-7217](https://orcid.org/0000-0003-0040-7217)
+- LinkedIn: [linkedin.com/in/oluwaseun-o-ajayi-b-sc-mrsc](https://www.linkedin.com/in/oluwaseun-o-ajayi-b-sc-mrsc/)
 
 ---
 

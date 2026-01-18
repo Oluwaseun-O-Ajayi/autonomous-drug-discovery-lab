@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: Autonomous Drug Discovery Lab
+message: >-
+  If you use this software in your research, please cite it
+  using the metadata from this file.
+type: software
+authors:
+  - family-names: Ajayi
+    given-names: Oluwaseun O.
+    email: seunolanikeajayi@gmail.com
+    affiliation: University of Georgia
+repository-code: >-
+  https://github.com/Oluwaseun-O-Ajayi/autonomous-drug-discovery-lab
+url: 'https://github.com/Oluwaseun-O-Ajayi/autonomous-drug-discovery-lab'
+abstract: >-
+  Self-driving laboratory framework for autonomous pharmaceutical
+  research. Integrates Bayesian optimization, robotic automation,
+  and analytical instrumentation to enable closed-loop optimization
+  that operates continuously without human intervention.
+keywords:
+  - self-driving-labs
+  - laboratory-automation
+  - drug-discovery
+  - bayesian-optimization
+  - autonomous-experimentation
+  - pharmaceutical-research
+license: MIT
+version: 1.0.0
+date-released: '2025-01-09'

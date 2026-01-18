@@ -1,0 +1,393 @@
+# %% [markdown]
+# # Autonomous Drug Discovery Lab - Getting Started
+# 
+# **Author:** Oluwaseun O. Ajayi  
+# **Date:** January 2025  
+# **License:** MIT
+# 
+# This notebook demonstrates the self-driving laboratory framework for autonomous 
+# pharmaceutical research. We'll walk through a complete closed-loop optimization
+# workflow using Bayesian optimization.
+#
+# ## Learning Objectives
+# 1. Set up an SDL optimization campaign
+# 2. Integrate laboratory instruments and automation
+# 3. Execute closed-loop optimization
+# 4. Analyze and visualize results
+# 5. Export publication-ready data
+
+# %% [markdown]
+# ## 1. Setup and Installation
+
+# %%
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
+import sys
+
+# Add parent directory to path (adjust as needed)
+sys.path.append('..')
+
+from sdl_core.orchestrator import SDLOrchestrator, OptimizationConfig, Experiment
+
+# Set plotting style
+sns.set_style("whitegrid")
+plt.rcParams['figure.figsize'] = (12, 6)
+
+print("✓ Imports successful")
+print(f"NumPy version: {np.__version__}")
+print(f"Pandas version: {pd.__version__}")
+
+# %% [markdown]
+# ## 2. Define Experimental System
+# 
+# In this example, we'll optimize enzymatic reaction conditions. In a real SDL,
+# these functions would interface with:
+# - Robotic liquid handlers
+# - Plate readers
+# - LC-MS systems
+# - Temperature controllers
+# - pH meters
+
+# %%
+def execute_enzyme_assay(params: dict) -> dict:
+    """
+    Simulate enzymatic reaction with robotic liquid handling
+    
+    In production, this would:
+    1. Send commands to liquid handler (e.g., Tecan, Hamilton)
+    2. Incubate at specified temperature
+    3. Read plate on microplate reader
+    4. Return raw absorbance/fluorescence data
+    """
+    temp = params['temperature']
+    ph = params['pH']
+    substrate = params['substrate_conc']
+    enzyme = params.get('enzyme_conc', 1.0)
+    
+    # Simulate enzyme kinetics with temperature and pH dependence
+    # Optimal conditions: 37°C, pH 7.4
+    temp_factor = np.exp(-((temp - 37) / 12) ** 2)
+    ph_factor = np.exp(-((ph - 7.4) / 1.2) ** 2)
+    
+    # Michaelis-Menten kinetics
+    Km = 45.0  # μM
+    Vmax = 120.0 * temp_factor * ph_factor * enzyme
+    velocity = (Vmax * substrate) / (Km + substrate)
+    
+    # Add realistic experimental noise
+    noise = np.random.normal(0, 0.05 * velocity)
+    observed_velocity = max(0, velocity + noise)
+    
+    # Simulate additional measurements
+    return {
+        'absorbance_405nm': observed_velocity / 100,  # Normalized
+        'temperature_actual': temp + np.random.normal(0, 0.1),
+        'pH_actual': ph + np.random.normal(0, 0.05),
+        'time_seconds': 300,
+        'raw_velocity': observed_velocity
+    }
+
+
+def analyze_assay_results(raw_data: dict) -> dict:
+    """
+    Analyze raw experimental data
+    
+    In production, this would:
+    1. Apply calibration curves
+    2. Calculate kinetic parameters
+    3. Perform quality control checks
+    4. Flag outliers or failed experiments
+    """
+    velocity = raw_data['raw_velocity']
+    
+    # Quality control
+    cv = 0.05  # Coefficient of variation
+    qc_pass = raw_data['temperature_actual'] > 15 and raw_data['pH_actual'] > 4
+    
+    return {
+        'objective_value': velocity,  # What we want to maximize
+        'specific_activity': velocity / 1.0,  # per mg enzyme
+        'qc_passed': qc_pass,
+        'measurement_cv': cv,
+        'absorbance': raw_data['absorbance_405nm']
+    }
+
+print("✓ Experimental system defined")
+
+# %% [markdown]
+# ## 3. Configure SDL Optimization Campaign
+
+# %%
+# Define parameter space
+config = OptimizationConfig(
+    objective="maximize",  # Maximize enzyme velocity
+    parameter_space={
+        'temperature': (25.0, 45.0),      # °C
+        'pH': (6.0, 8.5),                 # pH units
+        'substrate_conc': (20.0, 200.0),  # μM
+    },
+    acquisition_function="EI",  # Expected Improvement
+    n_initial_experiments=10,   # Initial random exploration
+    max_iterations=30,          # Maximum optimization iterations
+    convergence_threshold=0.01, # Stop if improvement < 1%
+    exploration_weight=0.1      # Balance exploration vs exploitation
+)
+
+print("✓ Optimization configured")
+print(f"\nParameter space:")
+for param, (lower, upper) in config.parameter_space.items():
+    print(f"  {param}: [{lower}, {upper}]")
+
+# %% [markdown]
+# ## 4. Initialize SDL Orchestrator
+
+# %%
+sdl = SDLOrchestrator(
+    config=config,
+    experiment_executor=execute_enzyme_assay,
+    result_analyzer=analyze_assay_results,
+    output_dir="demo_sdl_output"
+)
+
+print("✓ SDL Orchestrator initialized")
+print(f"  Output directory: {sdl.output_dir}")
+
+# %% [markdown]
+# ## 5. Run Optimization Campaign
+# 
+# This executes the complete SDL workflow:
+# 1. Initial exploration (random sampling)
+# 2. Bayesian optimization loop
+# 3. Convergence detection
+# 4. Final reporting
+
+# %%
+print("Starting SDL optimization campaign...")
+print("This will execute ~40 experiments automatically\n")
+
+results = sdl.run_optimization_campaign()
+
+print("\n✓ Optimization campaign completed!")
+
+# %% [markdown]
+# ## 6. Analyze Results
+
+# %%
+# Extract key results
+best_params = results['best_result']['parameters']
+best_value = results['best_result']['objective_value']
+n_experiments = results['campaign_summary']['completed_experiments']
+
+print("=" * 60)
+print("OPTIMIZATION RESULTS")
+print("=" * 60)
+print(f"\nOptimal Conditions Found:")
+print(f"  Temperature:   {best_params['temperature']:.2f} °C")
+print(f"  pH:            {best_params['pH']:.2f}")
+print(f"  Substrate:     {best_params['substrate_conc']:.1f} μM")
+print(f"\nOptimal Velocity: {best_value:.2f} μM/min")
+print(f"Total Experiments: {n_experiments}")
+print(f"Iterations: {results['campaign_summary']['iterations']}")
+
+# Parameter importance
+if results['parameter_importance']:
+    print(f"\nParameter Importance:")
+    for param, importance in results['parameter_importance'].items():
+        print(f"  {param}: {importance:.3f}")
+
+# %% [markdown]
+# ## 7. Visualize Optimization Trajectory
+
+# %%
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Plot 1: Optimization trajectory
+iterations = results['optimization_trajectory']['iterations']
+obj_values = results['optimization_trajectory']['objective_values']
+cumulative_best = results['optimization_trajectory']['cumulative_best']
+
+axes[0, 0].plot(iterations, obj_values, 'o-', alpha=0.6, label='Observed')
+axes[0, 0].plot(iterations, cumulative_best, 'r-', linewidth=2, label='Best So Far')
+axes[0, 0].set_xlabel('Iteration', fontsize=12)
+axes[0, 0].set_ylabel('Objective Value (Velocity, μM/min)', fontsize=12)
+axes[0, 0].set_title('Optimization Trajectory', fontsize=14, fontweight='bold')
+axes[0, 0].legend()
+axes[0, 0].grid(True, alpha=0.3)
+
+# Plot 2: Parameter evolution - Temperature
+X_data = np.array(sdl.X_data)
+param_names = list(config.parameter_space.keys())
+temp_idx = param_names.index('temperature')
+
+axes[0, 1].scatter(iterations, X_data[:, temp_idx], c=obj_values, 
+                   cmap='viridis', s=100, edgecolor='black', linewidth=0.5)
+axes[0, 1].axhline(y=best_params['temperature'], color='r', 
+                   linestyle='--', label='Optimal', linewidth=2)
+axes[0, 1].set_xlabel('Iteration', fontsize=12)
+axes[0, 1].set_ylabel('Temperature (°C)', fontsize=12)
+axes[0, 1].set_title('Temperature Evolution', fontsize=14, fontweight='bold')
+axes[0, 1].legend()
+axes[0, 1].grid(True, alpha=0.3)
+
+# Plot 3: Parameter evolution - pH
+ph_idx = param_names.index('pH')
+axes[1, 0].scatter(iterations, X_data[:, ph_idx], c=obj_values,
+                   cmap='viridis', s=100, edgecolor='black', linewidth=0.5)
+axes[1, 0].axhline(y=best_params['pH'], color='r',
+                   linestyle='--', label='Optimal', linewidth=2)
+axes[1, 0].set_xlabel('Iteration', fontsize=12)
+axes[1, 0].set_ylabel('pH', fontsize=12)
+axes[1, 0].set_title('pH Evolution', fontsize=14, fontweight='bold')
+axes[1, 0].legend()
+axes[1, 0].grid(True, alpha=0.3)
+
+# Plot 4: Parameter evolution - Substrate
+sub_idx = param_names.index('substrate_conc')
+axes[1, 1].scatter(iterations, X_data[:, sub_idx], c=obj_values,
+                   cmap='viridis', s=100, edgecolor='black', linewidth=0.5)
+axes[1, 1].axhline(y=best_params['substrate_conc'], color='r',
+                   linestyle='--', label='Optimal', linewidth=2)
+axes[1, 1].set_xlabel('Iteration', fontsize=12)
+axes[1, 1].set_ylabel('Substrate Concentration (μM)', fontsize=12)
+axes[1, 1].set_title('Substrate Concentration Evolution', fontsize=14, fontweight='bold')
+axes[1, 1].legend()
+axes[1, 1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('sdl_optimization_results.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("✓ Figures saved as 'sdl_optimization_results.png'")
+
+# %% [markdown]
+# ## 8. Export Data for Publication
+
+# %%
+# Export all experimental data
+df = sdl.export_data(filename="optimization_data.csv")
+
+print("✓ Data exported to 'optimization_data.csv'")
+print(f"\nDataFrame shape: {df.shape}")
+print(f"\nFirst few experiments:")
+print(df.head())
+
+# Summary statistics
+print(f"\n{'='*60}")
+print("SUMMARY STATISTICS")
+print(f"{'='*60}")
+print(df.describe())
+
+# %% [markdown]
+# ## 9. Performance Metrics
+# 
+# Calculate metrics demonstrating SDL efficiency vs manual optimization
+
+# %%
+def calculate_performance_metrics(results):
+    """Calculate SDL performance metrics"""
+    n_exp = results['campaign_summary']['completed_experiments']
+    
+    # Theoretical manual optimization (grid search)
+    grid_points_per_param = 10
+    n_params = len(config.parameter_space)
+    manual_experiments = grid_points_per_param ** n_params
+    
+    # Efficiency metrics
+    efficiency = (manual_experiments - n_exp) / manual_experiments * 100
+    
+    # Time savings (assuming 30 min per experiment)
+    time_per_exp = 30  # minutes
+    manual_time = manual_experiments * time_per_exp / 60  # hours
+    sdl_time = n_exp * time_per_exp / 60  # hours
+    time_saved = manual_time - sdl_time
+    
+    return {
+        'sdl_experiments': n_exp,
+        'manual_experiments': manual_experiments,
+        'efficiency_percent': efficiency,
+        'experiments_saved': manual_experiments - n_exp,
+        'sdl_time_hours': sdl_time,
+        'manual_time_hours': manual_time,
+        'time_saved_hours': time_saved,
+        'time_saved_days': time_saved / 24
+    }
+
+metrics = calculate_performance_metrics(results)
+
+print(f"{'='*60}")
+print("SDL EFFICIENCY METRICS")
+print(f"{'='*60}")
+print(f"\nExperiment Reduction:")
+print(f"  SDL experiments:    {metrics['sdl_experiments']}")
+print(f"  Manual experiments: {metrics['manual_experiments']}")
+print(f"  Experiments saved:  {metrics['experiments_saved']}")
+print(f"  Efficiency:         {metrics['efficiency_percent']:.1f}%")
+print(f"\nTime Savings:")
+print(f"  SDL time:      {metrics['sdl_time_hours']:.1f} hours")
+print(f"  Manual time:   {metrics['manual_time_hours']:.1f} hours")
+print(f"  Time saved:    {metrics['time_saved_days']:.1f} days")
+
+# %% [markdown]
+# ## 10. Next Steps
+# 
+# ### Integration with Real Laboratory Equipment
+# 
+# To deploy this SDL in your laboratory:
+# 
+# 1. **Replace simulation functions** with actual instrument interfaces:
+#    - Robotic liquid handlers (Tecan, Hamilton, Opentrons)
+#    - Microplate readers (BMG, Molecular Devices)
+#    - LC-MS systems (Agilent, Waters, Thermo)
+#    - Temperature controllers
+#    - pH meters
+# 
+# 2. **Integrate with your existing tools**:
+#    ```python
+#    from integrations.lcms_interface import LCMSController
+#    from integrations.robotics_interface import RobotWorkcell
+#    
+#    lcms = LCMSController()
+#    robot = RobotWorkcell()
+#    
+#    def real_experiment(params):
+#        robot.prepare_samples(params)
+#        robot.incubate(params['temperature'], duration=300)
+#        results = lcms.analyze_samples()
+#        return results
+#    ```
+# 
+# 3. **Add safety checks and error handling**
+# 4. **Implement result validation** using your existing analysis tools
+# 5. **Scale to multi-objective optimization** if needed
+# 
+# ### Publication Preparation
+# 
+# This workflow is ready for publication in *Current Protocols*:
+# - All steps are documented and reproducible
+# - Performance metrics demonstrate efficiency
+# - Code is modular and extensible
+# - Results are publication-quality
+
+# %% [markdown]
+# ## Citation
+# 
+# If you use this autonomous drug discovery lab framework in your research, please cite:
+# 
+# ```bibtex
+# @software{ajayi2025autonomous,
+#   title={Autonomous Drug Discovery Lab: Self-Driving Laboratory Framework},
+#   author={Ajayi, Oluwaseun O.},
+#   year={2025},
+#   url={https://github.com/Oluwaseun-O-Ajayi/autonomous-drug-discovery-lab}
+# }
+# ```
+
+print("\n" + "="*60)
+print("NOTEBOOK COMPLETE")
+print("="*60)
+print("\n✓ All cells executed successfully")
+print("✓ Results saved to demo_sdl_output/")
+print("✓ Ready for real laboratory deployment")

@@ -111,20 +111,21 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# SDL output directories
+# SDL output directories (but keep enzyme_optimization_output for examples)
 sdl_output/
 *_sdl_output/
 demo_sdl_output/
-example_sdl_output/
 optimization_results/
 campaign_*/
+!enzyme_optimization_output/
 
-# Experimental data
+# Experimental data (but keep example outputs)
 *.csv
 *.xlsx
 *.xls
 !examples/data/*.csv
 !examples/data/*.xlsx
+!enzyme_optimization_output/*.csv
 
 # Logs
 *.log
@@ -170,6 +171,7 @@ credentials.json
 *.jpeg
 !docs/figures/*.png
 !examples/figures/*.png
+!enzyme_optimization_output/*.png
 
 # Personal planning files (not for public repo)
 PROJECTCHECKLIST.md

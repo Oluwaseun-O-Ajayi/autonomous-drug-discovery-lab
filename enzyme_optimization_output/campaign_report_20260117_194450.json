@@ -1,0 +1,85 @@
+{
+  "campaign_summary": {
+    "total_experiments": 14,
+    "completed_experiments": 14,
+    "failed_experiments": 0,
+    "iterations": 2,
+    "objective": "maximize"
+  },
+  "best_result": {
+    "experiment_id": "init_4",
+    "parameters": {
+      "temperature": 34.479384094604754,
+      "pH": 7.222429327953552,
+      "substrate_conc": 100.12436202301855,
+      "enzyme_conc": 2.5792933434271093
+    },
+    "objective_value": 207.15197725491555,
+    "all_results": {
+      "objective_value": 207.15197725491555,
+      "specific_activity": 207.15197725491555,
+      "qc_passed": false,
+      "qc_details": {
+        "temperature_stable": true,
+        "pH_stable": true,
+        "signal_adequate": "True",
+        "not_saturated": "False"
+      },
+      "absorbance": 2.0715197725491556,
+      "enzyme_stability_index": 0.9361137092030076
+    }
+  },
+  "optimization_trajectory": {
+    "iterations": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13
+    ],
+    "objective_values": [
+      54.27094326727018,
+      35.556093199097276,
+      19.192638765887242,
+      207.15197725491555,
+      18.081016883986038,
+      112.80310134419683,
+      16.75472836964006,
+      40.408952966016095,
+      34.15978953699022,
+      19.230078681032474,
+      27.487474117746213,
+      77.06793469604752,
+      199.70068967532518,
+      57.886009767447554
+    ],
+    "cumulative_best": [
+      54.27094326727018,
+      54.27094326727018,
+      54.27094326727018,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555,
+      207.15197725491555
+    ]
+  },
+  "parameter_importance": {
+    "temperature": 1.0
+  }
+}
